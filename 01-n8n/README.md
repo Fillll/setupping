@@ -20,10 +20,30 @@ Fully automated setup of n8n workflow automation with Traefik reverse proxy, Pos
 - **Network**: Custom Docker network for inter-service communication
 
 ## Prerequisites Check
+
+### 0. Install Docker (if needed)
+```bash
+# Install Docker using official script
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+
+# Enable Docker service
+sudo systemctl enable docker
+
+# Clean up
+rm get-docker.sh
+
+# Note: You may need to log out and back in for group changes to take effect
+```
+
+### 1. Verify Installation
 ```bash
 # Verify Docker is installed and running
 docker --version
-docker-compose --version
+docker compose version
 sudo systemctl status docker
 
 # Check port availability
@@ -32,7 +52,7 @@ sudo netstat -tulpn | grep -E ':(80|443|5432|27017|8080)'
 
 ## Automated Setup Steps
 
-### 1. Directory Structure Creation
+### 2. Directory Structure Creation
 ```bash
 cd /home/fil/setupping/01-n8n/
 mkdir -p data/{postgres,mongo,n8n,traefik}
@@ -40,7 +60,7 @@ mkdir -p config/traefik
 mkdir -p backup
 ```
 
-### 2. Generate Secure Passwords
+### 3. Generate Secure Passwords
 ```bash
 # Generate random passwords (Claude will capture these in SETUP_SUMMARY.md)
 POSTGRES_PASSWORD=$(openssl rand -base64 32)
@@ -48,7 +68,7 @@ MONGO_PASSWORD=$(openssl rand -base64 32)
 N8N_PASSWORD=$(openssl rand -base64 32)
 ```
 
-### 3. Create Environment File
+### 4. Create Environment File
 File: `/home/fil/setupping/01-n8n/.env`
 ```env
 # PostgreSQL
@@ -65,7 +85,7 @@ N8N_USER=admin
 N8N_PASSWORD=[GENERATED_PASSWORD]
 ```
 
-### 4. Create docker-compose.yml
+### 5. Create docker-compose.yml
 File: `/home/fil/setupping/01-n8n/docker-compose.yml`
 ```yaml
 version: '3.8'
@@ -172,7 +192,7 @@ services:
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
 ```
 
-### 5. Create Traefik Configuration
+### 6. Create Traefik Configuration
 File: `/home/fil/setupping/01-n8n/config/traefik/traefik.yml`
 ```yaml
 api:
@@ -197,24 +217,24 @@ log:
 accessLog: {}
 ```
 
-### 6. Update .gitignore
+### 7. Update .gitignore
 ```bash
 echo "SETUP_SUMMARY.md" >> .gitignore
 echo ".env" >> .gitignore
 ```
 
-### 7. Set Permissions
+### 8. Set Permissions
 ```bash
 sudo chown -R 1000:1000 data/
 chmod 600 .env
 ```
 
-### 8. Start Services
+### 9. Start Services
 ```bash
 docker-compose up -d
 ```
 
-### 9. Wait for Services to Start
+### 10. Wait for Services to Start
 ```bash
 # Wait 60 seconds for all services to initialize
 sleep 60
