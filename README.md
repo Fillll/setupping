@@ -28,13 +28,15 @@ $ vnstat --oneline
 
 ## 1-b. Lock SSH to key-only log-ins
 
+Locally.
+
 ```bash
 ssh-copy-id fil@rpi-server-02.local
 # Or specific key
 # ssh-copy-id -i .ssh/id_ed25519.pub fil@rpi-server-02.local
 ```
 
-Edit (or create) /etc/ssh/sshd_config.d/00-local.conf on the Pi:
+Edit (or create) `/etc/ssh/sshd_config.d/00-local.conf` on the Pi:
 
 ```conf
 # Allow only key auth for everyone
@@ -71,4 +73,8 @@ $ npm -v    # e.g. 10.x.x
 
 ```bash
 $ npm install -g @anthropic-ai/claude-code
+```
+
+```bash
+$ claude login          # opens a browser tab → sign in with your Anthropic account
 ```
