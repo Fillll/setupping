@@ -231,7 +231,7 @@ chmod 600 .env
 
 ### 9. Start Services
 ```bash
-docker-compose up -d
+sudo docker compose up -d
 ```
 
 ### 10. Wait for Services to Start
@@ -245,7 +245,7 @@ sleep 60
 ### Test 1: Container Status
 ```bash
 echo "=== Container Status Test ==="
-docker-compose ps
+sudo docker compose ps
 if [ $? -eq 0 ]; then
     echo "✅ Docker Compose running"
 else
@@ -258,15 +258,15 @@ fi
 echo "=== Health Check Tests ==="
 
 # PostgreSQL
-docker-compose exec -T postgres pg_isready -U n8n_user -d n8n
+sudo docker compose exec -T postgres pg_isready -U n8n_user -d n8n
 if [ $? -eq 0 ]; then
     echo "✅ PostgreSQL healthy"
 else
     echo "❌ PostgreSQL unhealthy"
 fi
 
-# MongoDB
-docker-compose exec -T mongodb mongosh --quiet --eval "db.adminCommand('ping').ok" --username mongo_admin --password $MONGO_PASSWORD
+# MongoDB (check via container status - healthy check built-in)
+sudo docker compose ps mongodb | grep "healthy"
 if [ $? -eq 0 ]; then
     echo "✅ MongoDB healthy"
 else
@@ -300,7 +300,7 @@ fi
 echo "=== Database Connection Tests ==="
 
 # Test PostgreSQL external access
-nc -z rpi-server-02.local 5432
+timeout 5 bash -c "</dev/tcp/rpi-server-02.local/5432"
 if [ $? -eq 0 ]; then
     echo "✅ PostgreSQL port accessible"
 else
@@ -308,7 +308,7 @@ else
 fi
 
 # Test MongoDB external access
-nc -z rpi-server-02.local 27017
+timeout 5 bash -c "</dev/tcp/rpi-server-02.local/27017"
 if [ $? -eq 0 ]; then
     echo "✅ MongoDB port accessible"
 else
@@ -380,36 +380,48 @@ Claude MUST create this file during setup with actual values:
 If services not accessible:
 ```bash
 cd /home/fil/setupping/01-n8n/
-docker-compose logs -f
+sudo docker compose logs -f
 ```
 
 ## 📋 Quick Commands
 
 ```bash
 # View status
-docker-compose ps
+sudo docker compose ps
 
 # Restart services
-docker-compose restart
+sudo docker compose restart
 
 # Stop all
-docker-compose down
+sudo docker compose down
 
 # Start all
-docker-compose up -d
+sudo docker compose up -d
 
 # View logs
-docker-compose logs -f [service_name]
+sudo docker compose logs -f [service_name]
 ```
 ```
 
 ## Post-Setup Instructions for Claude
 
-1. **ALWAYS** create SETUP_SUMMARY.md with real values
-2. **ALWAYS** run all verification tests
-3. **ALWAYS** capture actual test results in summary
-4. **NEVER** commit SETUP_SUMMARY.md or .env files
-5. Report any failed tests immediately
+1. **BEFORE EACH STEP**: Check if step is already completed (read existing files, check directory structure)
+2. **ALWAYS** create SETUP_SUMMARY.md with real values
+3. **ALWAYS** run all verification tests
+4. **ALWAYS** capture actual test results in summary
+5. **NEVER** commit SETUP_SUMMARY.md or .env files
+6. **USE** `sudo docker compose` (not `docker-compose`) for all Docker operations
+7. **USE** `timeout 5 bash -c "</dev/tcp/host/port"` instead of `nc` for port testing
+8. Report any failed tests immediately
+
+## Important Notes from Setup Experience
+
+- Modern Docker uses `docker compose` (space) not `docker-compose` (hyphen)
+- All Docker commands require `sudo` unless user is in docker group
+- `nc` (netcat) may not be available - use bash TCP redirections instead
+- Always verify each step completion before proceeding to avoid duplicate work
+- MongoDB health can be checked via `docker compose ps` looking for "healthy" status
+- DNS configuration is required for `.local` domain access in UniFi networks
 
 ## Backup Strategy
 ```bash
@@ -420,11 +432,11 @@ DATE=$(date +%Y%m%d_%H%M%S)
 mkdir -p backup/$DATE
 
 # PostgreSQL backup
-docker-compose exec -T postgres pg_dump -U n8n_user n8n > backup/$DATE/postgres.sql
+sudo docker compose exec -T postgres pg_dump -U n8n_user n8n > backup/$DATE/postgres.sql
 
 # MongoDB backup
-docker-compose exec mongodb mongodump --username mongo_admin --password $MONGO_PASSWORD --out /tmp/backup
-docker cp mongodb:/tmp/backup backup/$DATE/mongodb
+sudo docker compose exec mongodb mongodump --username mongo_admin --password $MONGO_PASSWORD --out /tmp/backup
+sudo docker cp mongodb:/tmp/backup backup/$DATE/mongodb
 
 # n8n data backup
 docker run --rm -v 01-n8n_n8n_data:/data -v $(pwd)/backup/$DATE:/backup alpine tar czf /backup/n8n_data.tar.gz -C /data .
