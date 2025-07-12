@@ -30,6 +30,8 @@ $ vnstat --oneline
 
 ```bash
 ssh-copy-id fil@rpi-server-02.local
+# Or specific key
+# ssh-copy-id -i .ssh/id_ed25519.pub fil@rpi-server-02.local
 ```
 
 Edit (or create) /etc/ssh/sshd_config.d/00-local.conf on the Pi:
