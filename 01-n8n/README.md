@@ -13,8 +13,8 @@ Fully automated setup of n8n workflow automation with Traefik reverse proxy, Pos
 - This ensures reproducible setup when repo is cloned elsewhere
 
 ## Architecture
-- **Traefik**: Reverse proxy with dashboard at traefik.rpi-server-02.local:8080
-- **n8n**: Workflow automation at n8n.rpi-server-02.local
+- **Traefik**: Reverse proxy with HTTPS/Let's Encrypt, dashboard at traefik.rpi-server-02.local:8080
+- **n8n**: Workflow automation at https://n8n.rpi-server-02.local (HTTPS with SSL)
 - **PostgreSQL**: Database for n8n at rpi-server-02.local:5432
 - **MongoDB**: Additional database at rpi-server-02.local:27017
 - **Network**: Custom Docker network for inter-service communication
@@ -172,8 +172,8 @@ services:
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
       N8N_HOST: n8n.rpi-server-02.local
       N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      WEBHOOK_URL: http://n8n.rpi-server-02.local/
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://n8n.rpi-server-02.local/
       GENERIC_TIMEZONE: Europe/London
       N8N_BASIC_AUTH_ACTIVE: true
       N8N_BASIC_AUTH_USER: ${N8N_USER}
@@ -188,6 +188,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.n8n.rule=Host(\`n8n.rpi-server-02.local\`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
       - "traefik.http.routers.n8n.service=n8n"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
 ```
@@ -202,6 +204,11 @@ api:
 entryPoints:
   web:
     address: ":80"
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
   websecure:
     address: ":443"
 
@@ -210,6 +217,14 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: "01-n8n_n8n-network"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: spam_letsencrypt_n8n_home@alexfil.com
+      storage: /data/acme.json
+      httpChallenge:
+        entryPoint: web
 
 log:
   level: INFO
@@ -286,12 +301,12 @@ else
     echo "❌ Traefik dashboard not accessible"
 fi
 
-# Test n8n through Traefik
-curl -s -o /dev/null -w "%{http_code}" http://n8n.rpi-server-02.local
+# Test n8n through Traefik (HTTPS)
+curl -s -o /dev/null -w "%{http_code}" https://n8n.rpi-server-02.local
 if [ $? -eq 0 ]; then
-    echo "✅ n8n accessible through Traefik"
+    echo "✅ n8n accessible through Traefik (HTTPS)"
 else
-    echo "❌ n8n not accessible through Traefik"
+    echo "❌ n8n not accessible through Traefik (HTTPS)"
 fi
 ```
 
@@ -329,7 +344,7 @@ Claude MUST create this file during setup with actual values:
 ## 🔐 Credentials (KEEP SECURE)
 
 ### n8n Web Interface
-- **URL**: http://n8n.rpi-server-02.local
+- **URL**: https://n8n.rpi-server-02.local (HTTPS with Let's Encrypt SSL)
 - **Username**: admin
 - **Password**: [ACTUAL_GENERATED_PASSWORD]
 
@@ -348,7 +363,7 @@ Claude MUST create this file during setup with actual values:
 
 ## 🌐 Service URLs
 
-- **n8n Interface**: http://n8n.rpi-server-02.local
+- **n8n Interface**: https://n8n.rpi-server-02.local (HTTPS with Let's Encrypt SSL)
 - **Traefik Dashboard**: http://traefik.rpi-server-02.local:8080
 
 ## 📊 Verification Results
