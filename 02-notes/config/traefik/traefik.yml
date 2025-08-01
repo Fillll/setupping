@@ -1,0 +1,33 @@
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: "01-n8n_n8n-network"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: spam_letsencrypt_n8n_home@alexfil.com
+      storage: /data/acme.json
+      httpChallenge:
+        entryPoint: web
+
+log:
+  level: INFO
+
+accessLog: {}
