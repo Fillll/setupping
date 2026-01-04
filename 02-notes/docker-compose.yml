@@ -1,3 +1,5 @@
+version: '3.8'
+
 networks:
   n8n-network:
     driver: bridge
@@ -7,14 +9,16 @@ volumes:
   mongo_data:
   n8n_data:
   traefik_data:
+  syncthing_data:
+  syncthing_config:
+  notes_data:
+  qdrant_data:
 
 services:
   traefik:
-    image: traefik:latest
+    image: traefik:v3.0
     container_name: traefik
     restart: unless-stopped
-    environment:
-      DOCKER_API_VERSION: "1.44"
     ports:
       - "80:80"
       - "443:443"
@@ -90,6 +94,7 @@ services:
       N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
     volumes:
       - n8n_data:/home/node/.n8n
+      - notes_data:/home/node/notes:ro
     networks:
       - n8n-network
     depends_on:
@@ -102,3 +107,49 @@ services:
       - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
       - "traefik.http.routers.n8n.service=n8n"
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
+  syncthing:
+    image: syncthing/syncthing:latest
+    container_name: syncthing
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - syncthing_config:/var/syncthing/config
+      - notes_data:/var/syncthing/notes
+    ports:
+      - "8384:8384"
+      - "22000:22000/tcp"
+      - "22000:22000/udp"
+      - "21027:21027/udp"
+    networks:
+      - n8n-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.syncthing.rule=Host(`syncthing.rpi-server-02.local`)"
+      - "traefik.http.routers.syncthing.entrypoints=websecure"
+      - "traefik.http.routers.syncthing.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.syncthing.service=syncthing"
+      - "traefik.http.services.syncthing.loadbalancer.server.port=8384"
+      - "traefik.http.routers.syncthing.middlewares=syncthing-auth"
+      - "traefik.http.middlewares.syncthing-auth.basicauth.users=${SYNCTHING_AUTH}"
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - n8n-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qdrant.rule=Host(`qdrant.rpi-server-02.local`)"
+      - "traefik.http.routers.qdrant.entrypoints=websecure"
+      - "traefik.http.routers.qdrant.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.qdrant.service=qdrant"
+      - "traefik.http.services.qdrant.loadbalancer.server.port=6333"
