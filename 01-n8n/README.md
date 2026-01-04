@@ -461,3 +461,53 @@ EOF
 
 chmod +x backup.sh
 ```
+
+## Updating Services
+
+All services use `latest` tags, so updates can be pulled and applied easily:
+
+### Update Individual Service
+```bash
+# Pull latest image
+docker compose pull [service_name]
+
+# Recreate container with new image
+docker compose up -d [service_name]
+
+# Verify new version
+docker exec [service_name] [version_command]
+```
+
+### Update All Services
+```bash
+# Pull all latest images
+docker compose pull
+
+# Recreate all containers
+docker compose up -d
+
+# Check status
+docker compose ps
+```
+
+### Example: Update n8n
+```bash
+# Check current version
+docker exec n8n n8n --version
+
+# Pull and update
+docker compose pull n8n
+docker compose up -d n8n
+
+# Verify new version
+docker exec n8n n8n --version
+
+# Check logs for migration status
+docker logs n8n --tail 50
+```
+
+**Important Notes**:
+- Major version updates (e.g., n8n 1.x → 2.x) may include database migrations
+- Always backup data before major updates
+- Review release notes for breaking changes
+- Database migrations run automatically on container startup
