@@ -88,8 +88,6 @@ N8N_PASSWORD=[GENERATED_PASSWORD]
 ### 5. Create docker-compose.yml
 File: `/home/fil/setupping/01-n8n/docker-compose.yml`
 ```yaml
-version: '3.8'
-
 networks:
   n8n-network:
     driver: bridge
@@ -102,9 +100,11 @@ volumes:
 
 services:
   traefik:
-    image: traefik:v3.0
+    image: traefik:latest
     container_name: traefik
     restart: unless-stopped
+    environment:
+      DOCKER_API_VERSION: "1.44"
     ports:
       - "80:80"
       - "443:443"
@@ -217,6 +217,7 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: "01-n8n_n8n-network"
+    httpClientTimeout: 0
 
 certificatesResolvers:
   letsencrypt:
@@ -437,6 +438,8 @@ sudo docker compose logs -f [service_name]
 - Always verify each step completion before proceeding to avoid duplicate work
 - MongoDB health can be checked via `docker compose ps` looking for "healthy" status
 - DNS configuration is required for `.local` domain access in UniFi networks
+- **Traefik Version**: Using `traefik:latest` (v3.6.6+) with `DOCKER_API_VERSION: "1.44"` to ensure compatibility with modern Docker daemon (API v1.52)
+- **Let's Encrypt Limitation**: `.local` domains cannot obtain Let's Encrypt certificates (not valid public TLDs). HTTPS will work but browsers will show certificate warnings. For production, use a public domain or configure self-signed certificates.
 
 ## Backup Strategy
 ```bash
