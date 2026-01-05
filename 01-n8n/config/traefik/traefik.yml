@@ -25,8 +25,11 @@ certificatesResolvers:
     acme:
       email: spam_letsencrypt_n8n_home@alexfil.com
       storage: /data/acme.json
-      httpChallenge:
-        entryPoint: web
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
 
 log:
   level: INFO

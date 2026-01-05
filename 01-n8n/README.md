@@ -13,10 +13,11 @@ Fully automated setup of n8n workflow automation with Traefik reverse proxy, Pos
 - This ensures reproducible setup when repo is cloned elsewhere
 
 ## Architecture
-- **Traefik**: Reverse proxy with HTTPS/Let's Encrypt, dashboard at traefik.rpi-server-02.local:8080
+- **Traefik**: Reverse proxy with HTTPS/Let's Encrypt (DNS challenge), dashboard at traefik.rpi-server-02.local:8080
 - **n8n**: Workflow automation at https://n8n.rpi-server-02.local (HTTPS with SSL)
 - **PostgreSQL**: Database for n8n at rpi-server-02.local:5432
 - **MongoDB**: Additional database at rpi-server-02.local:27017
+- **Cloudflare Tunnel**: Optional - for internet access without port forwarding (see PUBLIC_DOMAIN_SETUP.md)
 - **Network**: Custom Docker network for inter-service communication
 
 ## Prerequisites Check
@@ -83,6 +84,16 @@ MONGO_PASSWORD=[GENERATED_PASSWORD]
 # n8n
 N8N_USER=admin
 N8N_PASSWORD=[GENERATED_PASSWORD]
+
+# Public Domain Configuration (optional - see PUBLIC_DOMAIN_SETUP.md)
+N8N_DOMAIN=n8n.example.com
+
+# Cloudflare Configuration (optional - for DNS challenge)
+CLOUDFLARE_EMAIL=user@example.com
+CLOUDFLARE_API_TOKEN=your_cloudflare_api_token_here
+
+# Cloudflare Tunnel (optional - for internet access without port forwarding)
+CLOUDFLARE_TUNNEL_TOKEN=your_cloudflare_tunnel_token_here
 ```
 
 ### 5. Create docker-compose.yml
@@ -105,6 +116,8 @@ services:
     restart: unless-stopped
     environment:
       DOCKER_API_VERSION: "1.44"
+      CF_API_EMAIL: ${CLOUDFLARE_EMAIL:-user@example.com}
+      CF_DNS_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
     ports:
       - "80:80"
       - "443:443"
@@ -158,6 +171,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - n8n-network
+    depends_on:
+      - n8n
 
   n8n:
     image: n8nio/n8n:latest
@@ -224,8 +247,11 @@ certificatesResolvers:
     acme:
       email: spam_letsencrypt_n8n_home@alexfil.com
       storage: /data/acme.json
-      httpChallenge:
-        entryPoint: web
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
 
 log:
   level: INFO
