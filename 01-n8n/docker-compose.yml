@@ -69,6 +69,18 @@ services:
       timeout: 10s
       retries: 3
 
+  cloudflare-ddns:
+    image: oznu/cloudflare-ddns:latest
+    container_name: cloudflare-ddns
+    restart: unless-stopped
+    environment:
+      API_KEY: ${CLOUDFLARE_API_TOKEN}
+      ZONE: ${CLOUDFLARE_ZONE:-example.com}
+      SUBDOMAIN: ${CLOUDFLARE_SUBDOMAIN:-n8n}
+      PROXIED: ${CLOUDFLARE_PROXIED:-false}
+    networks:
+      - n8n-network
+
   n8n:
     image: n8nio/n8n:latest
     container_name: n8n
@@ -80,10 +92,10 @@ services:
       DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
       DB_POSTGRESDB_USER: ${POSTGRES_USER}
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
-      N8N_HOST: n8n.rpi-server-02.local
+      N8N_HOST: ${N8N_DOMAIN:-n8n.example.com}
       N8N_PORT: 5678
       N8N_PROTOCOL: https
-      WEBHOOK_URL: https://n8n.rpi-server-02.local/
+      WEBHOOK_URL: https://${N8N_DOMAIN:-n8n.example.com}/
       GENERIC_TIMEZONE: Europe/London
       N8N_BASIC_AUTH_ACTIVE: true
       N8N_BASIC_AUTH_USER: ${N8N_USER}
@@ -97,7 +109,7 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(`n8n.rpi-server-02.local`)"
+      - "traefik.http.routers.n8n.rule=Host(`${N8N_DOMAIN:-n8n.example.com}`)"
       - "traefik.http.routers.n8n.entrypoints=websecure"
       - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
       - "traefik.http.routers.n8n.service=n8n"
