@@ -97,9 +97,25 @@ services:
       N8N_PROTOCOL: https
       WEBHOOK_URL: https://${N8N_DOMAIN:-n8n.example.com}/
       GENERIC_TIMEZONE: Europe/London
-      N8N_BASIC_AUTH_ACTIVE: true
+      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
+      # --- Execution saving (so Executions tab is not empty) ---
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+
+      # Optional but helpful while debugging:
+      EXECUTIONS_DATA_SAVE_ON_PROGRESS: "true"
+
+      # Optional pruning (prevents DB growing forever)
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: 336   # hours = 14 days
+      EXECUTIONS_DATA_PRUNE_MAX_COUNT: 10000
+      # End
       N8N_BASIC_AUTH_USER: ${N8N_USER}
       N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_REST_API_KEY: ${N8N_REST_API_KEY}
+      N8N_AUTH_EXCLUDE_ENDPOINTS: ${N8N_AUTH_EXCLUDE_ENDPOINTS:-}
+      N8N_SECURE_COOKIE: "false"
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
