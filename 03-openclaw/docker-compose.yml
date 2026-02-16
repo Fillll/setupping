@@ -1,0 +1,74 @@
+services:
+  openclaw:
+    build:
+      context: .
+      dockerfile: Dockerfile.openclaw
+      args:
+        OPENCLAW_IMAGE: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    image: ${OPENCLAW_CUSTOM_IMAGE:-openclaw-with-vnstat:local}
+    container_name: openclaw
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-Europe/London}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_WHITELIST_CHAT_IDS: ${TELEGRAM_WHITELIST_CHAT_IDS}
+      TELEGRAM_NON_WHITELIST_MODE: ${TELEGRAM_NON_WHITELIST_MODE:-ignore}
+      LOGSEQ_PATH: ${LOGSEQ_PATH:-/workspace/logseq}
+      VECTOR_STORE_PATH: ${VECTOR_STORE_PATH:-/workspace/vector}
+      RAG_CITATIONS_REQUIRED: ${RAG_CITATIONS_REQUIRED:-true}
+      RAG_REINDEX_MODE: ${RAG_REINDEX_MODE:-manual}
+      BROWSER_PROVIDER: ${BROWSER_PROVIDER:-browserless}
+      BROWSER_WS_ENDPOINT: ${BROWSER_WS_ENDPOINT:-ws://chrome:3000}
+      BROWSER_TIMEOUT_MS: ${BROWSER_TIMEOUT_MS:-120000}
+      SCREENSHOT_PATH: ${SCREENSHOT_PATH:-/workspace/screenshots}
+      SCREENSHOT_SEND_TO_TELEGRAM: ${SCREENSHOT_SEND_TO_TELEGRAM:-true}
+      VNSTAT_INTERFACE: ${VNSTAT_INTERFACE:-eth0}
+      OP_INTEGRATION_MODE: ${OP_INTEGRATION_MODE:-service-account}
+      OP_SERVICE_ACCOUNT_TOKEN: ${OP_SERVICE_ACCOUNT_TOKEN}
+      OP_VAULT: ${OP_VAULT}
+    volumes:
+      - ./config:/workspace/config:ro
+      - ./data/logseq:/workspace/logseq:ro
+      - ./data/vector:/workspace/vector
+      - ./data/browser:/workspace/browser
+      - ./data/screenshots:/workspace/screenshots
+      - ./data/vnstat:/var/lib/vnstat
+    ports:
+      - "${OPENCLAW_PORT:-8081}:8080"
+    depends_on:
+      - qdrant
+      - chrome
+    networks:
+      - openclaw-network
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.2
+    container_name: openclaw-qdrant
+    restart: unless-stopped
+    volumes:
+      - ./data/vector:/qdrant/storage
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    networks:
+      - openclaw-network
+
+  chrome:
+    image: browserless/chrome:1.61-chrome-stable
+    container_name: openclaw-chrome
+    restart: unless-stopped
+    environment:
+      TOKEN: ${BROWSERLESS_TOKEN:-}
+      TIMEOUT: ${BROWSER_TIMEOUT_MS:-120000}
+      ENABLE_DEBUGGER: "false"
+      EXIT_ON_HEALTH_FAILURE: "true"
+    ports:
+      - "3000:3000"
+    networks:
+      - openclaw-network
+
+networks:
+  openclaw-network:
+    driver: bridge

@@ -1,0 +1,21 @@
+# Secrets and local run state
+.env
+.env.local
+SETUP_SUMMARY.md
+
+# Runtime and user data
+data/*
+backup/*
+
+# Keep directory structure in git
+!data/.gitkeep
+!data/logseq/.gitkeep
+!data/vector/.gitkeep
+!data/browser/.gitkeep
+!data/screenshots/.gitkeep
+!data/vnstat/.gitkeep
+!backup/.gitkeep
+!config/.gitkeep
+
+# Optional local artifacts
+*.log
